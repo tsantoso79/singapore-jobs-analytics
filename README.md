@@ -1,16 +1,16 @@
-# 📊 Singapore Jobs Analytics Dashboard
+# Singapore Jobs Analytics Dashboard
 
 **1M+ Job Postings | 3 Business Cases | Interactive Analytics**
 
-A comprehensive data analytics dashboard analyzing Singapore's job market across 20+ months (Apr 2023 - Dec 2024). Built to serve talent acquisition teams, career coaches, and policy analysts with real-time insights.
+A comprehensive data analytics dashboard analyzing Singapore's job market across 20 months (Oct 2022 - May 2024). Built to serve talent acquisition teams, career coaches, and policy analysts with real-time insights.
 
 ![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
-![Streamlit](https://img.shields.io/badge/streamlit-1.29.0-red.svg)
+![Streamlit](https://img.shields.io/badge/streamlit-1.29+-red.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Python 3.10 or higher
@@ -20,8 +20,8 @@ A comprehensive data analytics dashboard analyzing Singapore's job market across
 
 1. **Clone the repository**
 ```bash
-git clone <repository-url>
-cd "Assignment 1"
+git clone https://github.com/tsantoso79/singapore-jobs-analytics.git
+cd singapore-jobs-analytics
 ```
 
 2. **Install dependencies**
@@ -42,110 +42,127 @@ streamlit run dashboard/app.py
 5. **Access the dashboard**
 Open your browser to `http://localhost:8501`
 
+### Static HTML Version
+For a no-setup experience, open `dashboard/singapore_jobs_dashboard.html` directly in any browser.
+
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 Assignment 1/
+├── .streamlit/
+│   └── config.toml                      # Streamlit Cloud theme config
 ├── data/
-│   └── gold/                          # Pre-aggregated metrics (0.04 MB)
+│   ├── silver/
+│   │   └── data_quality_report.json     # Data quality audit report
+│   └── gold/                            # Pre-aggregated metrics (0.04 MB)
 │       ├── category_metrics.parquet
 │       ├── position_metrics.parquet
 │       ├── time_series.parquet
 │       ├── company_metrics.parquet
 │       ├── employment_metrics.parquet
-│       └── salary_distribution.parquet
+│       ├── salary_distribution.parquet
+│       ├── category_trends.parquet      # Growth/decline trends
+│       └── job_forecasts.parquet        # 6-month Prophet forecasts
 ├── dashboard/
-│   ├── app.py                         # Main dashboard (home page)
+│   ├── app.py                           # Main dashboard (home page)
+│   ├── singapore_jobs_dashboard.html    # Static HTML version (no setup)
 │   └── pages/
-│       ├── 1_🎯_Talent_Acquisition.py # HR & Recruiter insights
-│       ├── 2_🧭_Career_Guide.py       # Job seeker guidance
-│       └── 3_📊_Policy_Insights.py    # Workforce analytics
+│       ├── 1_🎯_Talent_Acquisition.py   # HR & Recruiter insights
+│       ├── 2_🧭_Career_Guide.py         # Job seeker guidance
+│       └── 3_📊_Policy_Insights.py      # Workforce analytics
 ├── src/
-│   ├── data_pipeline.py               # ETL pipeline (Bronze → Silver → Gold)
-│   ├── quality_checks.py              # Data quality validation
-│   └── data_discovery.py              # Initial data profiling
-├── requirements.txt                   # Python dependencies
-├── README.md                          # This file
-├── REPORT.md                          # Detailed project report
-└── SGJobData.csv                      # Raw data (not in repo - too large)
+│   ├── data_pipeline.py                 # ETL pipeline (Bronze -> Silver -> Gold)
+│   ├── quality_checks.py               # Data quality validation
+│   └── data_discovery.py               # Initial data profiling
+├── notebooks/
+│   ├── 01_data_discovery.ipynb          # Initial exploration
+│   └── 02_data_quality_and_cleaning.ipynb  # Quality report with before/after
+├── requirements.txt                     # Python dependencies
+├── README.md                            # This file
+├── REPORT.md                            # Detailed project report
+├── PROJECT_PLAN.md                      # Implementation plan
+└── SGJobData.csv                        # Raw data (not in repo - too large)
 ```
 
 ---
 
-## 🎯 Features
+## Features
 
 ### Three Business Cases Served
 
 **1. Talent Acquisition Dashboard** 🎯
 - Identify top in-demand roles and competitive salary ranges
-- Track hiring trends over time
-- Analyze application competition by category
+- Track hiring trends over time with 3-month moving averages
+- 6-month AI forecast (Prophet) for top categories
 - Filter by job categories with interactive visualizations
 
 **2. Career Guide Dashboard** 🧭
 - Personalized salary progression paths
-- Career transition recommendations
-- Compare opportunities across interests
+- Career transition recommendations based on salary similarity
+- Compare opportunities across interest areas
 - Salary heatmaps by category and seniority
 
 **3. Policy Insights Dashboard** 📊
 - Workforce trend analysis with moving averages
 - Industry distribution treemaps
-- Employment type breakdowns
-- Skills gap analysis and sector stability metrics
+- HR budget spending analysis by industry
+- Category growth/decline trend indicators
+- Sector stability metrics and employment type breakdowns
 
 ### Key Capabilities
-✅ **1M+ job postings** analyzed (1,048,585 records)
-✅ **44 job categories** across all major industries
-✅ **20.6 months** of temporal data (Apr 2023 - Dec 2024)
-✅ **Multi-category filtering** - jobs discoverable by any category
-✅ **Real-time interactivity** - sub-second filter updates
-✅ **Pre-aggregated metrics** - blazing fast performance
+- **1M+ job postings** analyzed (1,048,585 raw records)
+- **43 job categories** across all major industries
+- **20 months** of temporal data (Oct 2022 - May 2024)
+- **AI Forecasting** - 6-month predictions using Facebook Prophet
+- **Multi-category filtering** - jobs discoverable by any category
+- **Static HTML export** - share insights without any setup
+- **Streamlit Cloud ready** - deploy with one click
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
-**Core**
-- Python 3.10+
-- Pandas 2.1.4 (data manipulation)
-- NumPy 1.26.3 (numerical operations)
-
-**Visualization & Dashboard**
-- Streamlit 1.29.0 (web framework)
-- Plotly 5.18.0 (interactive charts)
+**Dashboard**
+- Streamlit (web framework)
+- Plotly (interactive charts)
 
 **Data Processing**
-- PyArrow 14.0.2 (Parquet I/O)
-- Scikit-learn 1.3.2 (outlier detection)
+- Pandas, NumPy (data manipulation)
+- PyArrow (Parquet I/O)
+
+**Predictive Analytics**
+- Facebook Prophet (time series forecasting, pre-computed)
 
 **Architecture**
 - Bronze-Silver-Gold data layers
 - Parquet columnar storage (5.5x compression)
-- Cached aggregations for performance
+- Cached aggregations for sub-second performance
 
 ---
 
-## 📊 Data Pipeline
+## Data Pipeline
 
-### Bronze → Silver → Gold Architecture
+### Bronze -> Silver -> Gold Architecture
 
 **Bronze Layer (Raw)**
 - Source: SGJobData.csv (273 MB)
 - 1,048,585 job postings, 22 fields
 
 **Silver Layer (Cleaned)**
-- Parsed 44 job categories from JSON
-- Imputed 3,988 missing salaries using group medians
-- Winsorized 19,862 outliers at 1st/99th percentiles
+- Removed 10 synthetic test rows (RANDOM_JOB_* with $23M salaries)
+- Removed 3,988 completely empty rows (all key fields NaN)
+- Parsed 43 job categories from JSON
+- Fixed seniority mapping (250K rows corrected from "Unknown" to proper bucket)
+- Winsorized salary outliers at p1/p99 (min/max clipped, average recomputed)
+- Imputed missing salaries via 3-tier group median strategy
 - Standardized text fields (Title Case)
-- Created 17 engineered features
-- Output: 65.7 MB Parquet (1,044,598 rows, 39 columns)
+- Created 16 engineered features
+- Output: 65.7 MB Parquet (1,044,587 rows, 38 columns)
 
 **Gold Layer (Aggregated)**
-- 6 pre-aggregated metric tables
+- 8 pre-aggregated metric tables (including trends and forecasts)
 - Total size: 0.04 MB
 - Enables sub-second dashboard loading
 
@@ -153,154 +170,53 @@ Assignment 1/
 
 | Metric | Result |
 |--------|--------|
-| Missing Data | 0.38% (handled via imputation) |
-| Temporal Coverage | 20.6 months (sufficient) |
+| Raw Rows | 1,048,585 |
+| Clean Rows | 1,044,587 (99.62% preserved) |
+| Rows Removed | 3,998 (10 test + 3,988 empty) |
+| Categories | 43 (after removing Unknown) |
+| Seniority Unknown | 0% (was 24% before fix) |
 | Salary Coverage | 100% (after imputation) |
-| Outliers Handled | 19,862 winsorized |
-| Duplicates | 0 (verified clean) |
+| Data Quality Score | 9/10 |
 
 ---
 
-## 🔧 Usage Examples
+## Deployment
 
-### Running the Pipeline
-```bash
-# Full ETL pipeline
-python src/data_pipeline.py
+### Streamlit Cloud
+1. Fork/clone this repo
+2. Go to [share.streamlit.io](https://share.streamlit.io)
+3. Deploy with main file: `dashboard/app.py`
 
-# Data quality checks only
-python src/quality_checks.py
-
-# Initial data discovery
-python src/data_discovery.py
-```
-
-### Launching the Dashboard
-```bash
-# Default (opens browser automatically)
-streamlit run dashboard/app.py
-
-# Headless mode (server only)
-streamlit run dashboard/app.py --server.headless true
-
-# Custom port
-streamlit run dashboard/app.py --server.port 8502
-```
+### Static HTML
+Open `dashboard/singapore_jobs_dashboard.html` in any browser - no Python needed.
 
 ---
 
-## 📈 Key Insights
+## Key Insights
 
 From 1M+ job postings analyzed:
 
-- **Top 3 Categories**: Admin/Secretarial (103K), IT (100K), Engineering (100K)
-- **Median Salary**: $3,800/month across all sectors
+- **Top 3 Categories**: Admin/Secretarial, IT, Engineering (~100K each)
+- **Avg Market Salary**: ~$3,800/month (weighted by job volume)
 - **Salary Range**: $1,000 - $20,000+ (entry to senior management)
 - **Multi-Category Jobs**: 37% of postings span multiple sectors
-- **Employment Types**: 58% Permanent, 37% Full Time, 13% Contract
-- **Experience Required**: Average 2.5 years across all postings
+- **Employment Types**: 44% Permanent, 38% Full Time, 13% Contract
+- **Seniority Split**: 40% Entry, 45% Mid, 15% Senior
 
 ---
 
-## 🤝 Contributing
+## Additional Resources
 
-This is an academic project for a data coaching assignment. For questions or suggestions, please open an issue.
-
----
-
-## 📝 License
-
-MIT License - feel free to use this project for learning purposes.
+- **Detailed Report**: See [REPORT.md](REPORT.md) for comprehensive documentation
+- **Data Quality Notebook**: See `notebooks/02_data_quality_and_cleaning.ipynb`
+- **Data Source**: Singapore MyCareersFuture.sg (Oct 2022 - May 2024)
 
 ---
 
-## 👤 Author
+## Author
 
 Developed as part of Singapore Coding and Tech Professionals (SCTP) Data Coaching Module 1 Assignment.
 
----
+## License
 
-## 📚 Additional Resources
-
-- **Detailed Report**: See [REPORT.md](REPORT.md) for comprehensive documentation
-- **Data Source**: Singapore Jobs Dataset (1M+ postings, Apr 2023 - Dec 2024)
-- **Presentation**: 10-minute walkthrough covering business case, process, dashboard, and learnings
-
----
-
-# Assignment Requirements
-
-## Module 1 Assignment Project – Singapore Jobs Analytics
-
-Design a simple data product (dashboard or web app) using a real-world CSV of Singapore job postings (~1M+ rows). Your goal is to solve a clear business problem for a specific user group using insights from the data.
-
----
-
-## 1. Business Case (2–3 bullets)
-
-Briefly describe:
-
-- Business scenario (e.g. talent acquisition, policy analyst, career coach).
-- **Objective**: What decision/problem are you helping to address?
-- Target users and value: How will this dashboard/app help them?
-
-> Example: “Help a talent acquisition team identify which roles and skills are most in demand so they can prioritise hiring and sourcing.”
-
----
-
-## 2. Data Handling & Process (5–8 bullets)
-
-Summarise your end-to-end process:
-
-- Tools used (e.g. Python + Pandas / DuckDB / SQL).
-- How you loaded the CSV (~1M+ rows).
-- Key cleaning steps (missing values, standardising categories, parsing dates, handling salary formats).
-- Important feature engineering (e.g. seniority, salary bands, demand metrics, skill tags).
-- EDA highlights: key patterns or anomalies you discovered that shaped your dashboard design.
-
-You do not need to show all code, but the logic and key decisions should be clear.
-
----
-
-## 3. Dashboard / App (6–10 bullets)
-
-Describe and demonstrate your solution:
-
-- Type of solution: dashboard (e.g. Streamlit, Power BI, Tableau) or simple web app.
-- Main views:
-  - Overview metrics (e.g. total postings, top roles/industries, salary ranges).
-  - Drill-down view (by role, industry, location, skills, etc.).
-  - Time trend view (e.g. postings over time, salary trends).
-- Interactivity: filters, sorting, drill-downs, tooltips where relevant.
-- Design choices: layout, chart types, colour scheme, readability.
-- How each view directly supports your business objective and target users.
-
-Include 2–4 key screenshots in your written submission (or show live in the presentation).
-
----
-
-## 4. Presentation (10 mins per team)
-
-Suggested flow:
-
-1. **Business case & objective** (2–3 mins)  
-   - Scenario, users, objective, success criteria.
-2. **Process & data handling** (3–4 mins)  
-   - How you cleaned, transformed, and explored the data.
-3. **Dashboard / app walkthrough** (3–4 mins)  
-   - Main views, interactions, and how they answer the business question.
-4. **Challenges & learnings** (1–2 mins)  
-   - Technical/analytical challenges, what you learned, and possible next steps.
-
----
-
-## 5. Deliverables
-
-- Brief written report (Markdown/PDF) following Sections 1–4 above.
-- Working dashboard / app (deployed link or clear run instructions).
-- Code repo with:
-  - Data handling notebook(s) / scripts,
-  - Dashboard/app code,
-  - README with setup steps.
-
-Focus on a **coherent story** from business question → data process → dashboard → insights, rather than advanced techniques.
+MIT License - feel free to use this project for learning purposes.

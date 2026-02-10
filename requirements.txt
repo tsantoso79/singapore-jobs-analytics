@@ -1,27 +1,14 @@
-# Core Dependencies
-pandas==2.1.4
-numpy==1.26.3
-pyarrow==14.0.2
+# Dashboard Dependencies (Streamlit Cloud compatible)
+pandas>=2.0.0
+numpy>=1.24.0
+pyarrow>=14.0.0
+plotly>=5.18.0
+streamlit>=1.29.0
 
-# Data Processing
-scikit-learn==1.3.2
-scipy==1.11.4
-
-# Visualization
-plotly==5.18.0
-matplotlib==3.8.2
-seaborn==0.13.1
-
-# Time Series (for predictions)
-prophet==1.1.5
-statsmodels==0.14.1
-
-# Dashboard
-streamlit==1.29.0
-
-# Testing
-pytest==7.4.3
-pytest-cov==4.1.0
-
-# Utilities
-python-dateutil==2.8.2
+# Development Dependencies (not needed for dashboard)
+# prophet==1.1.5        # Pre-computed forecasts in Gold layer
+# scikit-learn==1.3.2   # Used in pipeline only
+# matplotlib==3.8.2     # Notebooks only
+# seaborn==0.13.1       # Notebooks only
+# statsmodels==0.14.1   # Pipeline only
+# pytest==7.4.3         # Testing only

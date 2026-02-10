@@ -49,6 +49,12 @@ st.markdown("""
         border-radius: 0.5rem;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+    .stMetric label {
+        color: #31333F !important;
+    }
+    .stMetric [data-testid="stMetricValue"] {
+        color: #0E1117 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -59,10 +65,8 @@ def load_gold_data():
     base_dir = Path(__file__).parent.parent
     gold_dir = base_dir / 'data' / 'gold'
 
-    data = {}
-
-    # Load all gold metric files
-    metric_files = {
+    # Required metric files
+    required_files = {
         'category': 'category_metrics.parquet',
         'position': 'position_metrics.parquet',
         'time_series': 'time_series.parquet',
@@ -71,10 +75,30 @@ def load_gold_data():
         'salary_dist': 'salary_distribution.parquet'
     }
 
-    for key, filename in metric_files.items():
-        file_path = gold_dir / filename
-        if file_path.exists():
-            data[key] = pd.read_parquet(file_path)
+    # Check all required files exist
+    missing_files = []
+    for key, filename in required_files.items():
+        if not (gold_dir / filename).exists():
+            missing_files.append(filename)
+
+    if missing_files:
+        st.error(f"""
+        **Data files not found!**
+
+        Missing files in `data/gold/`:
+        {chr(10).join(f'- {f}' for f in missing_files)}
+
+        Please run the data pipeline first:
+        ```
+        python src/data_pipeline.py
+        ```
+        """)
+        st.stop()
+
+    # Load all files
+    data = {}
+    for key, filename in required_files.items():
+        data[key] = pd.read_parquet(gold_dir / filename)
 
     return data
 
@@ -101,32 +125,29 @@ def main():
         total_jobs = data['category']['job_count'].sum()
         st.metric(
             label="Total Job Postings",
-            value=f"{total_jobs:,}",
-            delta="1M+ analyzed"
+            value=f"{total_jobs:,}"
         )
 
     with col2:
         total_categories = len(data['category'])
         st.metric(
             label="Job Categories",
-            value=f"{total_categories}",
-            delta="All industries"
+            value=f"{total_categories}"
         )
 
     with col3:
-        median_salary = data['category']['median_salary'].median()
+        # Weighted average: weight by job_count so large categories count more
+        weighted_sal = (data['category']['median_salary'] * data['category']['job_count']).sum() / data['category']['job_count'].sum()
         st.metric(
-            label="Median Salary",
-            value=f"${median_salary:,.0f}/mo",
-            delta="+5% vs prev year"
+            label="Avg Market Salary",
+            value=f"${weighted_sal:,.0f}/mo"
         )
 
     with col4:
         total_companies = len(data['company'])
         st.metric(
             label="Top Companies",
-            value=f"{total_companies}+",
-            delta="Active recruiters"
+            value=f"{total_companies}+"
         )
 
     # Visualization sections

@@ -18,13 +18,29 @@ def load_data():
     base_dir = Path(__file__).parent.parent.parent
     gold_dir = base_dir / 'data' / 'gold'
 
-    return {
-        'category': pd.read_parquet(gold_dir / 'category_metrics.parquet'),
-        'position': pd.read_parquet(gold_dir / 'position_metrics.parquet'),
-        'time_series': pd.read_parquet(gold_dir / 'time_series.parquet'),
-        'employment': pd.read_parquet(gold_dir / 'employment_metrics.parquet'),
-        'salary_dist': pd.read_parquet(gold_dir / 'salary_distribution.parquet')
-    }
+    try:
+        forecast_file = gold_dir / 'job_forecasts.parquet'
+
+        return {
+            'category': pd.read_parquet(gold_dir / 'category_metrics.parquet'),
+            'position': pd.read_parquet(gold_dir / 'position_metrics.parquet'),
+            'time_series': pd.read_parquet(gold_dir / 'time_series.parquet'),
+            'employment': pd.read_parquet(gold_dir / 'employment_metrics.parquet'),
+            'salary_dist': pd.read_parquet(gold_dir / 'salary_distribution.parquet'),
+            'forecasts': pd.read_parquet(forecast_file) if forecast_file.exists() else pd.DataFrame()
+        }
+    except FileNotFoundError as e:
+        st.error(f"""
+        **Data file not found!**
+
+        {str(e)}
+
+        Please run the data pipeline first:
+        ```
+        python src/data_pipeline.py
+        ```
+        """)
+        st.stop()
 
 
 def main():
@@ -62,8 +78,9 @@ def main():
         st.metric("Total Roles", f"{total_roles:,}")
 
     with col2:
-        avg_salary = filtered_cat['median_salary'].median()
-        st.metric("Median Salary", f"${avg_salary:,.0f}/mo")
+        # Weighted median: weight by job_count so large categories count more
+        weighted_sal = (filtered_cat['median_salary'] * filtered_cat['job_count']).sum() / filtered_cat['job_count'].sum()
+        st.metric("Avg Market Salary", f"${weighted_sal:,.0f}/mo")
 
     with col3:
         avg_applications = filtered_cat['total_applications'].sum() / filtered_cat['job_count'].sum()
@@ -108,14 +125,15 @@ def main():
             y=salary_comparison['primary_category'],
             mode='markers',
             marker=dict(
-                size=salary_comparison['job_count'] / 100,
+                size=10 + (salary_comparison['job_count'] - salary_comparison['job_count'].min()) / max(salary_comparison['job_count'].max() - salary_comparison['job_count'].min(), 1) * 40,
                 color=salary_comparison['median_salary'],
                 colorscale='Blues',
                 showscale=True,
                 colorbar=dict(title="Salary")
             ),
             text=salary_comparison['primary_category'],
-            hovertemplate='<b>%{text}</b><br>Salary: $%{x:,.0f}<br>Jobs: %{marker.size:.0f}<extra></extra>'
+            customdata=salary_comparison[['job_count']],
+            hovertemplate='<b>%{text}</b><br>Salary: $%{x:,.0f}<br>Jobs: %{customdata[0]:,}<extra></extra>'
         ))
 
         fig.update_layout(
@@ -145,6 +163,81 @@ def main():
     fig.update_layout(height=400)
     st.plotly_chart(fig, use_container_width=True)
 
+    # Forecasting section
+    if not data['forecasts'].empty:
+        st.markdown("---")
+        st.subheader("🔮 6-Month Job Posting Forecast (AI Prediction)")
+
+        # Filter forecasts to selected categories
+        forecast_data = data['forecasts'].copy()
+        if selected_categories:
+            forecast_data = forecast_data[forecast_data['category'].isin(selected_categories)]
+
+        if not forecast_data.empty:
+            # Combine historical and forecast data
+            historical = filtered_ts.copy()
+            historical['year_month'] = pd.to_datetime(historical['year_month'].astype(str))
+
+            fig = go.Figure()
+
+            # Add historical data for each category
+            for category in forecast_data['category'].unique():
+                hist_cat = historical[historical['category'] == category]
+
+                # Historical line
+                fig.add_trace(go.Scatter(
+                    x=hist_cat['year_month'],
+                    y=hist_cat['job_count'],
+                    mode='lines',
+                    name=f'{category} (Historical)',
+                    line=dict(width=2),
+                    showlegend=True
+                ))
+
+                # Forecast line with confidence interval
+                forecast_cat = forecast_data[forecast_data['category'] == category]
+
+                fig.add_trace(go.Scatter(
+                    x=forecast_cat['ds'],
+                    y=forecast_cat['yhat'],
+                    mode='lines',
+                    name=f'{category} (Forecast)',
+                    line=dict(width=2, dash='dash'),
+                    showlegend=True
+                ))
+
+                # Confidence interval
+                fig.add_trace(go.Scatter(
+                    x=forecast_cat['ds'].tolist() + forecast_cat['ds'].tolist()[::-1],
+                    y=forecast_cat['yhat_upper'].tolist() + forecast_cat['yhat_lower'].tolist()[::-1],
+                    fill='toself',
+                    fillcolor='rgba(0,100,80,0.2)',
+                    line=dict(color='rgba(255,255,255,0)'),
+                    name=f'{category} (Confidence)',
+                    showlegend=False
+                ))
+
+            fig.update_layout(
+                title="Historical Data + 6-Month Forecast (with confidence intervals)",
+                xaxis_title="Month",
+                yaxis_title="Job Postings",
+                height=500,
+                hovermode='x unified'
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Forecast insights
+            st.info("""
+            **📊 Forecast Insights:**
+            - Predictions generated using Facebook Prophet AI model
+            - Shaded areas show confidence intervals (uncertainty range)
+            - Use forecasts to plan hiring strategies 3-6 months ahead
+            - Forecasts are based on historical patterns and may not account for sudden market changes
+            """)
+        else:
+            st.info("Select categories from the sidebar to see forecasts")
+
     # Detailed table
     st.markdown("---")
     st.subheader("📊 Detailed Category Breakdown")
@@ -159,10 +252,10 @@ def main():
         'Total Applications', 'Avg Experience (years)'
     ]
 
-    display_df['Median Salary'] = display_df['Median Salary'].apply(lambda x: f"${x:,.0f}")
-    display_df['Mean Salary'] = display_df['Mean Salary'].apply(lambda x: f"${x:,.0f}")
-    display_df['Job Count'] = display_df['Job Count'].apply(lambda x: f"{x:,}")
-    display_df['Total Applications'] = display_df['Total Applications'].apply(lambda x: f"{x:,}")
+    display_df['Median Salary'] = display_df['Median Salary'].apply(lambda x: f"${x:,.0f}" if pd.notna(x) else "N/A")
+    display_df['Mean Salary'] = display_df['Mean Salary'].apply(lambda x: f"${x:,.0f}" if pd.notna(x) else "N/A")
+    display_df['Job Count'] = display_df['Job Count'].apply(lambda x: f"{x:,}" if pd.notna(x) else "0")
+    display_df['Total Applications'] = display_df['Total Applications'].apply(lambda x: f"{x:,}" if pd.notna(x) else "0")
     display_df['Avg Experience (years)'] = display_df['Avg Experience (years)'].round(1)
 
     st.dataframe(display_df, use_container_width=True, height=400)

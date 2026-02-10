@@ -18,12 +18,25 @@ def load_data():
     base_dir = Path(__file__).parent.parent.parent
     gold_dir = base_dir / 'data' / 'gold'
 
-    return {
-        'category': pd.read_parquet(gold_dir / 'category_metrics.parquet'),
-        'position': pd.read_parquet(gold_dir / 'position_metrics.parquet'),
-        'salary_dist': pd.read_parquet(gold_dir / 'salary_distribution.parquet'),
-        'employment': pd.read_parquet(gold_dir / 'employment_metrics.parquet')
-    }
+    try:
+        return {
+            'category': pd.read_parquet(gold_dir / 'category_metrics.parquet'),
+            'position': pd.read_parquet(gold_dir / 'position_metrics.parquet'),
+            'salary_dist': pd.read_parquet(gold_dir / 'salary_distribution.parquet'),
+            'employment': pd.read_parquet(gold_dir / 'employment_metrics.parquet')
+        }
+    except FileNotFoundError as e:
+        st.error(f"""
+        **Data file not found!**
+
+        {str(e)}
+
+        Please run the data pipeline first:
+        ```
+        python src/data_pipeline.py
+        ```
+        """)
+        st.stop()
 
 
 def main():
@@ -36,10 +49,11 @@ def main():
     # Sidebar
     st.sidebar.header("Your Profile")
 
+    position_options = data['position']['positionLevels'].tolist()
     current_level = st.sidebar.selectbox(
         "Current Position Level",
-        options=data['position']['positionLevels'].tolist(),
-        index=2
+        options=position_options,
+        index=min(2, len(position_options) - 1)
     )
 
     interest_categories = st.sidebar.multiselect(
@@ -193,9 +207,10 @@ def main():
             current_category = interest_categories[0]
             current_salary = data['category'][data['category']['primary_category'] == current_category]['median_salary'].iloc[0]
 
-            # Find similar paying categories
-            data['category']['salary_diff'] = abs(data['category']['median_salary'] - current_salary)
-            similar_cats = data['category'].nsmallest(6, 'salary_diff')[1:]  # Exclude current
+            # Find similar paying categories (use copy to avoid mutating cached data)
+            category_copy = data['category'].copy()
+            category_copy['salary_diff'] = abs(category_copy['median_salary'] - current_salary)
+            similar_cats = category_copy.nsmallest(6, 'salary_diff')[1:]  # Exclude current
 
             for _, row in similar_cats.iterrows():
                 st.write(f"• **{row['primary_category']}** - ${row['median_salary']:,.0f}/mo ({row['job_count']:,} jobs)")
@@ -216,26 +231,51 @@ def main():
     col1, col2 = st.columns(2)
 
     with col1:
-        st.success(f"""
-        **Best Value Career Move:**
-
-        Based on your profile, consider transitioning to:
-        **{data['category'].nlargest(1, 'median_salary')['primary_category'].iloc[0]}**
-
-        - Median Salary: ${data['category'].nlargest(1, 'median_salary')['median_salary'].iloc[0]:,.0f}/month
-        - Available Roles: {data['category'].nlargest(1, 'median_salary')['job_count'].iloc[0]:,}
-        - Salary Uplift: +25% potential
-        """)
+        if interest_categories and len(interest_categories) > 0:
+            # Filter to user's interests
+            interest_data = data['category'][data['category']['primary_category'].isin(interest_categories)]
+            if len(interest_data) > 0:
+                best_value = interest_data.nlargest(1, 'median_salary').iloc[0]
+                current_salary = current_level_data['median_salary']
+                uplift_pct = ((best_value['median_salary'] - current_salary) / current_salary * 100)
+                st.success(f"""
+                **Best Value Career Move (from your interests):**
+                
+                **{best_value['primary_category']}**
+                
+                - Median Salary: ${best_value['median_salary']:,.0f}/month
+                - Available Roles: {best_value['job_count']:,}
+                - Salary Uplift: {'+' if uplift_pct > 0 else ''}{uplift_pct:.1f}% vs your current level
+                """)
+            else:
+                st.warning("Select career interests to see personalized recommendations")
+        else:
+            st.warning("Select career interests in the sidebar")
 
     with col2:
-        st.info(f"""
-        **High Demand Sectors:**
+        if interest_categories and len(interest_categories) > 0:
+            interest_data = data['category'][data['category']['primary_category'].isin(interest_categories)]
+            top_demand = interest_data.nlargest(min(3, len(interest_data)), 'job_count')
+            if len(top_demand) > 0:
+                recommendations = "\n".join([f"{i+1}. **{row['primary_category']}** ({row['job_count']:,} jobs)" for i, (_, row) in enumerate(top_demand.iterrows())])
+                st.info(f"""
+                **High Demand in Your Interests:**
 
-        Top 3 categories with most openings:
-        1. {data['category'].nlargest(3, 'job_count')['primary_category'].iloc[0]} ({data['category'].nlargest(3, 'job_count')['job_count'].iloc[0]:,} jobs)
-        2. {data['category'].nlargest(3, 'job_count')['primary_category'].iloc[1]} ({data['category'].nlargest(3, 'job_count')['job_count'].iloc[1]:,} jobs)
-        3. {data['category'].nlargest(3, 'job_count')['primary_category'].iloc[2]} ({data['category'].nlargest(3, 'job_count')['job_count'].iloc[2]:,} jobs)
-        """)
+                {recommendations}
+                """)
+            else:
+                st.info("Select interests to see high demand sectors")
+        else:
+            top_3 = data['category'].nlargest(3, 'job_count')
+            st.info(f"""
+            **Overall High Demand Sectors:**
+            
+            1. {top_3.iloc[0]['primary_category']} ({top_3.iloc[0]['job_count']:,} jobs)
+            2. {top_3.iloc[1]['primary_category']} ({top_3.iloc[1]['job_count']:,} jobs)
+            3. {top_3.iloc[2]['primary_category']} ({top_3.iloc[2]['job_count']:,} jobs)
+            
+            *Tip: Select your interests for personalized recommendations*
+            """)
 
 
 if __name__ == "__main__":

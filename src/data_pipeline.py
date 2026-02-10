@@ -47,6 +47,21 @@ class DataPipeline:
 
         print(f"\nStarting rows: {original_rows:,}")
 
+        # 0. Remove synthetic/test rows (fake job IDs with RANDOM_JOB prefix)
+        if 'metadata_jobPostId' in df.columns:
+            test_rows = df['metadata_jobPostId'].str.startswith('RANDOM_JOB', na=False)
+            test_count = test_rows.sum()
+            if test_count > 0:
+                print(f"\n[0] Removing {test_count} synthetic test rows (RANDOM_JOB_* IDs)")
+                df = df[~test_rows]
+
+        # 0b. Remove completely empty rows (all key fields are NaN)
+        empty_mask = df['title'].isna() & df['postedCompany_name'].isna() & df['metadata_jobPostId'].isna()
+        empty_count = empty_mask.sum()
+        if empty_count > 0:
+            print(f"    Removing {empty_count} completely empty rows")
+            df = df[~empty_mask]
+
         # 1. Drop completely null columns
         print("\n[1] Dropping null columns...")
         null_cols = df.columns[df.isnull().all()].tolist()
@@ -103,9 +118,9 @@ class DataPipeline:
         # Recalculate average_salary
         df['average_salary'] = (df['salary_minimum'] + df['salary_maximum']) / 2
 
-        # 5. Winsorize salary outliers
+        # 5. Winsorize salary outliers (only min/max, then recompute average)
         print("\n[5] Handling salary outliers (winsorization)...")
-        for col in ['salary_minimum', 'salary_maximum', 'average_salary']:
+        for col in ['salary_minimum', 'salary_maximum']:
             if df[col].notna().sum() > 0:
                 p1 = df[col].quantile(0.01)
                 p99 = df[col].quantile(0.99)
@@ -116,6 +131,10 @@ class DataPipeline:
                 if outliers_low > 0 or outliers_high > 0:
                     print(f"    {col}: Winsorizing {outliers_low + outliers_high:,} outliers")
                     df[col] = df[col].clip(lower=p1, upper=p99)
+
+        # Recompute average_salary from clipped min/max to maintain consistency
+        df['average_salary'] = (df['salary_minimum'] + df['salary_maximum']) / 2
+        print("    average_salary: Recomputed from clipped min/max")
 
         # 6. Standardize text fields
         print("\n[6] Standardizing text fields...")
@@ -204,14 +223,15 @@ class DataPipeline:
         print("\n[1] Creating seniority levels...")
         seniority_map = {
             'Fresh / Entry Level': 'Entry',
+            'Fresh/Entry Level': 'Entry',
             'Junior Executive': 'Entry',
+            'Non-Executive': 'Entry',
             'Executive': 'Mid',
             'Senior Executive': 'Mid',
             'Professional': 'Mid',
             'Manager': 'Senior',
             'Middle Management': 'Senior',
             'Senior Management': 'Senior',
-            'Senior Manager': 'Senior'
         }
         df['seniority_level'] = df['positionLevels'].map(seniority_map).fillna('Unknown')
         print(f"    Distribution: {df['seniority_level'].value_counts().to_dict()}")

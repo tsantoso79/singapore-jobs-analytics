@@ -1,0 +1,45 @@
+# Data files (per user requirement: don't upload CSV)
+SGJobData.csv
+data/bronze/
+data/silver/
+
+# Keep Gold layer (small, pre-aggregated)
+!data/gold/*.parquet
+!data/gold/*.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.ipynb_checkpoints/
+venv/
+env/
+.env
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Notebooks with outputs (can be large)
+notebooks/*_output.ipynb
+
+# Temporary files
+*.tmp
+*.log
+*.cache
